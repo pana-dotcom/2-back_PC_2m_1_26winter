@@ -18,6 +18,12 @@ body{font-family:Arial,sans-serif;text-align:center;margin-top:50px}
 #results table{width:100%;border-collapse:collapse}
 #results th,#results td{border-bottom:1px solid #ddd;padding:8px;text-align:left}
 #results .dprime{font-size:24px;font-weight:bold;text-align:center;margin-top:18px}
+#results .summaryMetrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}
+#results .metric{background:white;border:1px solid #ccc;border-radius:8px;padding:12px;text-align:center}
+#results .metric strong{display:block;font-size:22px;margin-top:6px}
+#results .judgment{font-size:30px;font-weight:bold;text-align:center;margin-top:20px;padding:12px;border-radius:8px}
+#results .pass{color:#a40000;background:#fdeaea;border:2px solid #d64040}
+#results .fail{color:#004a99;background:#e9f3ff;border:2px solid #4b90d9}
 </style>
 </head>
 <body>
@@ -38,6 +44,7 @@ body{font-family:Arial,sans-serif;text-align:center;margin-top:50px}
 const TOTAL_STIMULI=50;       // 最初の2刺激を含む
 const EVALUATED_TRIALS=48;    // 評価対象試行数
 const TOTAL_TARGETS=12;
+const TARGETS_PER_HALF=6;
 const TOTAL_NONTARGETS=36;
 const LETTER_DURATION=500;
 const FIXATION_DURATION=2000;
@@ -209,10 +216,19 @@ function generateSequence(){
 }
 
 function generateTargetPositions(){
-  const candidates=Array.from({length:EVALUATED_TRIALS},(_,i)=>i+2);
+  // 評価試行1～24（配列index 2～25）と、評価試行25～48（index 26～49）から各6回選ぶ。
+  const firstHalfCandidates=Array.from({length:24},(_,i)=>i+2);
+  const secondHalfCandidates=Array.from({length:24},(_,i)=>i+26);
+
   for(let attempt=0;attempt<100000;attempt++){
-    shuffleInPlace(candidates);
-    const targets=candidates.slice(0,TOTAL_TARGETS).sort((a,b)=>a-b);
+    shuffleInPlace(firstHalfCandidates);
+    shuffleInPlace(secondHalfCandidates);
+
+    const targets=[
+      ...firstHalfCandidates.slice(0,TARGETS_PER_HALF),
+      ...secondHalfCandidates.slice(0,TARGETS_PER_HALF)
+    ].sort((a,b)=>a-b);
+
     if(validateTargets(targets))return new Set(targets);
   }
   throw new Error("ターゲット配置の生成上限に達しました。");
@@ -220,6 +236,12 @@ function generateTargetPositions(){
 
 function validateTargets(targets){
   if(targets.length!==TOTAL_TARGETS||new Set(targets).size!==TOTAL_TARGETS)return false;
+
+  // 前半24試行・後半24試行のターゲット数を各6回に固定する。
+  const firstHalfCount=targets.filter(position=>position>=2&&position<=25).length;
+  const secondHalfCount=targets.filter(position=>position>=26&&position<=49).length;
+  if(firstHalfCount!==TARGETS_PER_HALF||secondHalfCount!==TARGETS_PER_HALF)return false;
+
   // 開始・終了・ターゲット間で非ターゲット12連続以上を禁止。
   if(targets[0]-2>=12||49-targets[targets.length-1]>=12)return false;
   for(let i=1;i<targets.length;i++)if(targets[i]-targets[i-1]-1>=12)return false;
@@ -327,22 +349,40 @@ function endGame(){
 
 function showResults(){
   const r=calculateDPrime();
+  const hitRatePercent=r.hitRate*100;
+  const faRatePercent=r.faRate*100;
+
+  // 指定条件をそのまま適用する。
+  // FA率は「20%以下」を合格条件とする。
+  const passed=
+    hitRatePercent>=75 &&
+    faRatePercent<=20 &&
+    r.dPrime>=1.5;
+
   resultsDiv.innerHTML=`
     <h3>結果</h3>
+
+    <div class="summaryMetrics">
+      <div class="metric">Hit率<strong>${hitRatePercent.toFixed(2)}%</strong></div>
+      <div class="metric">FA率<strong>${faRatePercent.toFixed(2)}%</strong></div>
+      <div class="metric">d′<strong>${r.dPrime.toFixed(4)}</strong></div>
+    </div>
+
+    <div class="judgment ${passed?'pass':'fail'}">${passed?'合格':'不合格'}</div>
+
     <table>
       <tr><th>指標</th><th>値</th></tr>
       <tr><td>Hit（有効）</td><td>${r.hit}</td></tr>
       <tr><td>Miss（早期）</td><td>${r.earlyMiss}</td></tr>
       <tr><td>Miss（無反応）</td><td>${r.noResponseMiss}</td></tr>
       <tr><td>ターゲット試行数</td><td>${r.observedTargets}</td></tr>
-      <tr><td>Hit率（補正後）</td><td>${r.hitRate.toFixed(4)}</td></tr>
+      <tr><td>Hit率（補正後）</td><td>${r.hitRate.toFixed(4)}（${hitRatePercent.toFixed(2)}%）</td></tr>
       <tr><td>FA（早期）</td><td>${r.earlyFA}</td></tr>
       <tr><td>FA（有効）</td><td>${r.validFA}</td></tr>
       <tr><td>CR（無反応）</td><td>${r.cr}</td></tr>
       <tr><td>非ターゲット試行数</td><td>${r.observedNonTargets}</td></tr>
-      <tr><td>FA率（補正後）</td><td>${r.faRate.toFixed(4)}</td></tr>
+      <tr><td>FA率（補正後）</td><td>${r.faRate.toFixed(4)}（${faRatePercent.toFixed(2)}%）</td></tr>
     </table>
-    <div class="dprime">d′ = ${r.dPrime.toFixed(4)}</div>
   `;
   resultsDiv.style.display="block";
 }
