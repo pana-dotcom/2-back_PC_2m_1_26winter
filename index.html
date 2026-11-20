@@ -4,388 +4,1434 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>2-back Task</title>
+
 <style>
-body{font-family:Arial,sans-serif;text-align:center;margin-top:50px}
-#letter{font-size:80px;width:120px;height:120px;margin:30px auto 16px;display:flex;align-items:center;justify-content:center;line-height:1}
-.fixation{color:white;background:gray;border-radius:10px}
-#status{min-height:64px;font-size:20px}
-#countdown{font-size:42px;font-weight:bold;min-height:50px}
-#instruction{font-size:18px}
-#audioUnlock{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:white;color:#111;user-select:none}
-#audioUnlockText{font-size:24px;font-weight:bold;padding:24px}
-#results{display:none;max-width:620px;margin:25px auto;text-align:left;border:1px solid #bbb;border-radius:10px;padding:18px 24px;background:#f7f7f7}
-#results h3{text-align:center;margin-top:0}
-#results table{width:100%;border-collapse:collapse}
-#results th,#results td{border-bottom:1px solid #ddd;padding:8px;text-align:left}
-#results .dprime{font-size:24px;font-weight:bold;text-align:center;margin-top:18px}
-#results .summaryMetrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:16px 0}
-#results .metric{background:white;border:1px solid #ccc;border-radius:8px;padding:12px;text-align:center}
-#results .metric strong{display:block;font-size:22px;margin-top:6px}
-#results .judgment{font-size:30px;font-weight:bold;text-align:center;margin-top:20px;padding:12px;border-radius:8px}
-#results .pass{color:#a40000;background:#fdeaea;border:2px solid #d64040}
-#results .fail{color:#004a99;background:#e9f3ff;border:2px solid #4b90d9}
+body{
+  font-family:Arial,sans-serif;
+  text-align:center;
+  margin-top:50px;
+}
+
+#letter{
+  font-size:80px;
+  width:120px;
+  height:120px;
+  margin:30px auto 16px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  line-height:1;
+}
+
+.fixation{
+  color:white;
+  background:gray;
+  border-radius:10px;
+}
+
+#status{
+  min-height:64px;
+  font-size:20px;
+}
+
+#countdown{
+  font-size:42px;
+  font-weight:bold;
+  min-height:50px;
+}
+
+#instruction{
+  font-size:18px;
+}
+
+#audioUnlock{
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  background:white;
+  color:#111;
+  user-select:none;
+}
+
+#audioUnlockText{
+  font-size:24px;
+  font-weight:bold;
+  padding:24px;
+}
+
+#results{
+  display:none;
+  max-width:620px;
+  margin:25px auto;
+  text-align:left;
+  border:1px solid #bbb;
+  border-radius:10px;
+  padding:18px 24px;
+  background:#f7f7f7;
+}
+
+#results h3{
+  text-align:center;
+  margin-top:0;
+}
+
+#results table{
+  width:100%;
+  border-collapse:collapse;
+}
+
+#results th,
+#results td{
+  border-bottom:1px solid #ddd;
+  padding:8px;
+  text-align:left;
+}
+
+#results .dprime{
+  font-size:24px;
+  font-weight:bold;
+  text-align:center;
+  margin-top:18px;
+}
+
+#results .summaryMetrics{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+  margin:16px 0;
+}
+
+#results .metric{
+  background:white;
+  border:1px solid #ccc;
+  border-radius:8px;
+  padding:12px;
+  text-align:center;
+}
+
+#results .metric strong{
+  display:block;
+  font-size:22px;
+  margin-top:6px;
+}
+
+#results .judgment{
+  font-size:30px;
+  font-weight:bold;
+  text-align:center;
+  margin-top:20px;
+  padding:12px;
+  border-radius:8px;
+}
+
+#results .pass{
+  color:#a40000;
+  background:#fdeaea;
+  border:2px solid #d64040;
+}
+
+#results .fail{
+  color:#004a99;
+  background:#e9f3ff;
+  border:2px solid #4b90d9;
+}
 </style>
 </head>
+
 <body>
-<div id="audioUnlock" aria-live="polite"><div id="audioUnlockText">Enterキーを押して待機を開始してください</div></div>
-<h2>2-back</h2>
-<div id="game">
-  <div id="letter">✖</div>
-  <div id="status">
-    <div id="countdown"></div>
-    <div id="instruction">開始まで注視点を見て待機してください</div>
+
+<div id="audioUnlock" aria-live="polite">
+  <div id="audioUnlockText">
+    Enterキーを押して待機を開始してください
   </div>
 </div>
+
+<h2>2-back</h2>
+
+<div id="game">
+  <div id="letter">✖</div>
+
+  <div id="status">
+    <div id="countdown"></div>
+    <div id="instruction">
+      開始まで注視点を見て待機してください
+    </div>
+  </div>
+</div>
+
 <div id="results"></div>
+
 <script>
 'use strict';
 
-/* ===== 実験設定 ===== */
-const TOTAL_STIMULI=50;       // 最初の2刺激を含む
-const EVALUATED_TRIALS=48;    // 評価対象試行数
-const TOTAL_TARGETS=12;
-const TARGETS_PER_HALF=6;
-const TOTAL_NONTARGETS=36;
-const LETTER_DURATION=500;
-const FIXATION_DURATION=2000;
-const RESPONSE_WINDOW=2500;
-const PREPARATION_DURATION=30000;
-const COUNTDOWN_DURATION=5000;
-const BASE_LETTERS=["B","F","K","H","M","Q","R","T"];
-const RESULT_CODES={EARLY_MISS:1,HIT:2,NO_RESPONSE_MISS:3,EARLY_FA:4,VALID_FA:5,CR:6,DUPLICATE:7};
+/* ==================================================
+   実験設定
+================================================== */
 
-/* ===== DOM ===== */
-const audioUnlockDiv=document.getElementById("audioUnlock");
-const letterDiv=document.getElementById("letter");
-const countdownDiv=document.getElementById("countdown");
-const instructionDiv=document.getElementById("instruction");
-const resultsDiv=document.getElementById("results");
+const TOTAL_STIMULI = 50;
+const EVALUATED_TRIALS = 48;
+const TOTAL_TARGETS = 12;
+const TARGETS_PER_HALF = 6;
+const TOTAL_NONTARGETS = 36;
 
-/* ===== 状態 ===== */
-let isRunning=false,preparationStarted=false,stimulusIndex=0;
-let fullSequence=[],shownSequence=[],logs=[],currentResponses=[];
-let trialStartTime=null,stimulusTimer=null,fixationTimer=null;
-let countdownInterval=null,countdownStartTimer=null,taskStartTimer=null,audioContext=null;
+const LETTER_DURATION = 500;
+const FIXATION_DURATION = 2000;
+const RESPONSE_WINDOW = 2500;
 
-function showFixation(){letterDiv.textContent="✖";letterDiv.classList.add("fixation")}
-function showStimulus(letter){letterDiv.textContent=letter;letterDiv.classList.remove("fixation")}
+const PREPARATION_DURATION = 30000;
+const COUNTDOWN_DURATION = 5000;
 
-/* ===== 音 ===== */
+const BASE_LETTERS = [
+  "B",
+  "F",
+  "K",
+  "H",
+  "M",
+  "Q",
+  "R",
+  "T"
+];
+
+const RESULT_CODES = {
+  EARLY_MISS:1,
+  HIT:2,
+  NO_RESPONSE_MISS:3,
+  EARLY_FA:4,
+  VALID_FA:5,
+  CR:6,
+  DUPLICATE:7
+};
+
+/* 最初のEnter時および開始5秒前の音 */
+const WARNING_TONE = {
+  frequency:659.25,
+  duration:500,
+  volume:.20
+};
+
+/* 課題開始時および課題終了時の音 */
+const EVENT_TONE = {
+  frequency:880,
+  duration:600,
+  volume:.22
+};
+
+/* ==================================================
+   DOM
+================================================== */
+
+const audioUnlockDiv =
+  document.getElementById("audioUnlock");
+
+const letterDiv =
+  document.getElementById("letter");
+
+const countdownDiv =
+  document.getElementById("countdown");
+
+const instructionDiv =
+  document.getElementById("instruction");
+
+const resultsDiv =
+  document.getElementById("results");
+
+/* ==================================================
+   状態
+================================================== */
+
+let isRunning = false;
+let preparationStarted = false;
+let stimulusIndex = 0;
+
+let fullSequence = [];
+let shownSequence = [];
+let logs = [];
+let currentResponses = [];
+
+let trialStartTime = null;
+let stimulusTimer = null;
+let fixationTimer = null;
+
+let countdownInterval = null;
+let countdownStartTimer = null;
+let taskStartTimer = null;
+
+let audioContext = null;
+
+/* ==================================================
+   画面表示
+================================================== */
+
+function showFixation(){
+  letterDiv.textContent = "✖";
+  letterDiv.classList.add("fixation");
+}
+
+function showStimulus(letter){
+  letterDiv.textContent = letter;
+  letterDiv.classList.remove("fixation");
+}
+
+/* ==================================================
+   音
+================================================== */
+
 function getAudioContext(){
   if(!audioContext){
-    const C=window.AudioContext||window.webkitAudioContext;
-    if(C)audioContext=new C();
+    const C =
+      window.AudioContext ||
+      window.webkitAudioContext;
+
+    if(C){
+      audioContext = new C();
+    }
   }
+
   return audioContext;
 }
-async function playTone(frequency,durationMs,volume=.22){
+
+async function unlockAudio(){
+  const c = getAudioContext();
+
+  if(!c){
+    throw new Error(
+      "音声機能を利用できません。"
+    );
+  }
+
+  if(c.state !== "running"){
+    await c.resume();
+  }
+
+  const o = c.createOscillator();
+  const g = c.createGain();
+
+  g.gain.setValueAtTime(
+    .0001,
+    c.currentTime
+  );
+
+  o.connect(g);
+  g.connect(c.destination);
+
+  o.start(c.currentTime);
+  o.stop(c.currentTime + .02);
+}
+
+async function playTone(
+  frequency,
+  durationMs,
+  volume = .22
+){
   try{
-    const c=getAudioContext();
-    if(!c)return false;
-    if(c.state!=="running")await c.resume();
-    const o=c.createOscillator(),g=c.createGain(),n=c.currentTime,d=durationMs/1000;
-    const attack=Math.min(.08,d*.25),release=Math.min(.22,d*.45);
-    o.type="sine";
-    o.frequency.setValueAtTime(frequency,n);
-    g.gain.setValueAtTime(.0001,n);
-    g.gain.exponentialRampToValueAtTime(volume,n+attack);
-    g.gain.setValueAtTime(volume,n+Math.max(attack,d-release));
-    g.gain.exponentialRampToValueAtTime(.0001,n+d);
-    o.connect(g);g.connect(c.destination);o.start(n);o.stop(n+d);
+    const c = getAudioContext();
+
+    if(!c){
+      return false;
+    }
+
+    if(c.state !== "running"){
+      await c.resume();
+    }
+
+    const o = c.createOscillator();
+    const g = c.createGain();
+
+    const n = c.currentTime;
+    const d = durationMs / 1000;
+
+    const attack =
+      Math.min(.08, d * .25);
+
+    const release =
+      Math.min(.22, d * .45);
+
+    o.type = "sine";
+
+    o.frequency.setValueAtTime(
+      frequency,
+      n
+    );
+
+    g.gain.setValueAtTime(
+      .0001,
+      n
+    );
+
+    g.gain.exponentialRampToValueAtTime(
+      volume,
+      n + attack
+    );
+
+    g.gain.setValueAtTime(
+      volume,
+      n + Math.max(
+        attack,
+        d - release
+      )
+    );
+
+    g.gain.exponentialRampToValueAtTime(
+      .0001,
+      n + d
+    );
+
+    o.connect(g);
+    g.connect(c.destination);
+
+    o.start(n);
+    o.stop(n + d);
+
     return true;
-  }catch(e){console.error(e);return false}
+
+  }catch(e){
+    console.error(e);
+    return false;
+  }
 }
 
-/* ===== 待機・開始 ===== */
-function beginPreparation(){
-  if(preparationStarted)return;
-  preparationStarted=true;
-  const begun=performance.now();
-  audioUnlockDiv.style.display="none";
-  showFixation();
-  countdownDiv.textContent="";
-  instructionDiv.textContent="開始まで注視点を見て待機してください";
+function playWarningTone(){
+  void playTone(
+    WARNING_TONE.frequency,
+    WARNING_TONE.duration,
+    WARNING_TONE.volume
+  );
+}
 
-  countdownStartTimer=setTimeout(startCountdown,Math.max(0,PREPARATION_DURATION-COUNTDOWN_DURATION-(performance.now()-begun)));
-  taskStartTimer=setTimeout(startGame,Math.max(0,PREPARATION_DURATION-(performance.now()-begun)));
+function playEventTone(){
+  void playTone(
+    EVENT_TONE.frequency,
+    EVENT_TONE.duration,
+    EVENT_TONE.volume
+  );
+}
+
+/* ==================================================
+   待機・開始
+================================================== */
+
+async function beginPreparation(){
+  if(preparationStarted){
+    return;
+  }
+
+  preparationStarted = true;
 
   try{
-    const c=getAudioContext();
-    if(c){
-      if(c.state!=="running")void c.resume();
-      const o=c.createOscillator(),g=c.createGain();
-      g.gain.setValueAtTime(.0001,c.currentTime);
-      o.connect(g);g.connect(c.destination);o.start(c.currentTime);o.stop(c.currentTime+.02);
-    }
-  }catch(e){console.warn(e)}
+    /*
+      最初のEnter操作によってAudioContextを有効化する。
+    */
+    await unlockAudio();
 
-  requestAnimationFrame(()=>setTimeout(()=>{
-    try{fullSequence=generateSequence()}
-    catch(e){
-      clearTimeout(countdownStartTimer);clearTimeout(taskStartTimer);
-      instructionDiv.textContent="刺激列を生成できませんでした。ページを再読み込みしてください。";
-      console.error(e);
-    }
-  },0));
+  }catch(e){
+    console.error(e);
+
+    preparationStarted = false;
+
+    document.getElementById(
+      "audioUnlockText"
+    ).textContent =
+      "音声を有効にできませんでした。ページを再読み込みしてください。";
+
+    return;
+  }
+
+  const begun = performance.now();
+
+  audioUnlockDiv.style.display = "none";
+
+  showFixation();
+
+  countdownDiv.textContent = "";
+
+  instructionDiv.textContent =
+    "開始まで注視点を見て待機してください";
+
+  /*
+    最初のEnterキー押下時に、
+    開始5秒前と同じ警告音を鳴らす。
+  */
+  playWarningTone();
+
+  countdownStartTimer = setTimeout(
+    startCountdown,
+    Math.max(
+      0,
+      PREPARATION_DURATION -
+      COUNTDOWN_DURATION -
+      (performance.now() - begun)
+    )
+  );
+
+  taskStartTimer = setTimeout(
+    startGame,
+    Math.max(
+      0,
+      PREPARATION_DURATION -
+      (performance.now() - begun)
+    )
+  );
+
+  /*
+    待機時間中に刺激系列を生成する。
+  */
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      try{
+        fullSequence = generateSequence();
+
+      }catch(e){
+        clearTimeout(
+          countdownStartTimer
+        );
+
+        clearTimeout(
+          taskStartTimer
+        );
+
+        instructionDiv.textContent =
+          "刺激列を生成できませんでした。ページを再読み込みしてください。";
+
+        console.error(e);
+      }
+    }, 0);
+  });
 }
 
-document.addEventListener("keydown",e=>{
-  if(e.key!=="Enter"||e.repeat||preparationStarted)return;
-  e.preventDefault();
-  beginPreparation();
-});
+document.addEventListener(
+  "keydown",
+  e => {
+    if(
+      e.key !== "Enter" ||
+      e.repeat ||
+      preparationStarted
+    ){
+      return;
+    }
+
+    e.preventDefault();
+
+    void beginPreparation();
+  }
+);
 
 function startCountdown(){
-  void playTone(659.25,500,.20);
-  instructionDiv.textContent="";
-  let n=5;
-  countdownDiv.textContent=n;
-  countdownInterval=setInterval(()=>{
-    n--;
-    countdownDiv.textContent=n>0?n:"";
-    if(n<=0)clearInterval(countdownInterval);
-  },1000);
+  /*
+    課題開始5秒前の警告音。
+    最初のEnter時と同じ音。
+  */
+  playWarningTone();
+
+  instructionDiv.textContent = "";
+
+  let n = 5;
+
+  countdownDiv.textContent = n;
+
+  countdownInterval = setInterval(
+    () => {
+      n--;
+
+      countdownDiv.textContent =
+        n > 0 ? n : "";
+
+      if(n <= 0){
+        clearInterval(
+          countdownInterval
+        );
+
+        countdownInterval = null;
+      }
+    },
+    1000
+  );
 }
 
 function startGame(){
-  if(fullSequence.length!==TOTAL_STIMULI){
-    clearInterval(countdownInterval);
-    countdownDiv.textContent="";
-    instructionDiv.textContent="刺激列の準備が完了していません。ページを再読み込みしてください。";
+  if(
+    fullSequence.length !==
+    TOTAL_STIMULI
+  ){
+    clearInterval(
+      countdownInterval
+    );
+
+    countdownDiv.textContent = "";
+
+    instructionDiv.textContent =
+      "刺激列の準備が完了していません。ページを再読み込みしてください。";
+
     return;
   }
-  clearInterval(countdownInterval);
-  countdownDiv.textContent="";
-  instructionDiv.textContent="2つ前の文字と一致時はEnterキーを押す";
-  void playTone(880,600,.22);
-  isRunning=true;
-  stimulusIndex=0;
-  shownSequence=[];
-  logs=[];
-  currentResponses=[];
-  trialStartTime=null;
+
+  clearInterval(
+    countdownInterval
+  );
+
+  countdownInterval = null;
+
+  countdownDiv.textContent = "";
+
+  instructionDiv.textContent =
+    "2つ前の文字と一致時はEnterキーを押す";
+
+  /*
+    課題開始時の音。
+  */
+  playEventTone();
+
+  isRunning = true;
+  stimulusIndex = 0;
+
+  shownSequence = [];
+  logs = [];
+  currentResponses = [];
+
+  trialStartTime = null;
+
   showFixation();
-  fixationTimer=setTimeout(()=>{if(isRunning)nextTrial()},FIXATION_DURATION);
+
+  fixationTimer = setTimeout(
+    () => {
+      if(isRunning){
+        nextTrial();
+      }
+    },
+    FIXATION_DURATION
+  );
 }
 
-/* ===== 試行進行・キー入力 ===== */
+/* ==================================================
+   試行進行
+================================================== */
+
 function nextTrial(){
-  if(!isRunning)return;
-  if(stimulusIndex>=TOTAL_STIMULI){endGame();return}
-  currentResponses=[];
-  const letter=fullSequence[stimulusIndex];
+  if(!isRunning){
+    return;
+  }
+
+  if(stimulusIndex >= TOTAL_STIMULI){
+    endGame();
+    return;
+  }
+
+  currentResponses = [];
+
+  const letter =
+    fullSequence[stimulusIndex];
+
   shownSequence.push(letter);
+
   showStimulus(letter);
-  trialStartTime=performance.now();
+
+  trialStartTime =
+    performance.now();
+
   stimulusIndex++;
-  stimulusTimer=setTimeout(()=>{
-    if(!isRunning)return;
-    showFixation();
-    fixationTimer=setTimeout(()=>{
-      if(!isRunning)return;
-      evaluateTrial();
-      trialStartTime=null;
-      nextTrial();
-    },FIXATION_DURATION);
-  },LETTER_DURATION);
+
+  stimulusTimer = setTimeout(
+    () => {
+      if(!isRunning){
+        return;
+      }
+
+      showFixation();
+
+      fixationTimer = setTimeout(
+        () => {
+          if(!isRunning){
+            return;
+          }
+
+          evaluateTrial();
+
+          trialStartTime = null;
+
+          nextTrial();
+        },
+        FIXATION_DURATION
+      );
+    },
+    LETTER_DURATION
+  );
 }
 
-document.addEventListener("keydown",e=>{
-  if(e.key!=="Enter"||e.repeat||!isRunning||trialStartTime===null)return;
-  const rt=Math.round(performance.now()-trialStartTime);
-  if(rt>=0&&rt<RESPONSE_WINDOW)currentResponses.push(rt);
-});
+/* ==================================================
+   回答入力
+================================================== */
 
-/* ===== 刺激列生成 ===== */
-function generateSequence(){
-  const targets=generateTargetPositions(),seq=[];
-  for(let i=0;i<TOTAL_STIMULI;i++){
-    let base;
-    if(i<2){
-      base=randomChoice(BASE_LETTERS);
-    }else if(targets.has(i)){
-      base=seq[i-2].toUpperCase();
-    }else{
-      const forbidden=seq[i-2].toUpperCase();
-      base=randomChoice(BASE_LETTERS.filter(x=>x!==forbidden));
+document.addEventListener(
+  "keydown",
+  e => {
+    if(
+      e.key !== "Enter" ||
+      e.repeat ||
+      !isRunning ||
+      trialStartTime === null
+    ){
+      return;
     }
-    seq.push(Math.random()<.5?base.toLowerCase():base);
+
+    const rt = Math.round(
+      performance.now() -
+      trialStartTime
+    );
+
+    if(
+      rt >= 0 &&
+      rt < RESPONSE_WINDOW
+    ){
+      currentResponses.push(rt);
+    }
   }
+);
+
+/* ==================================================
+   刺激列生成
+================================================== */
+
+function generateSequence(){
+  const targets =
+    generateTargetPositions();
+
+  const seq = [];
+
+  for(
+    let i = 0;
+    i < TOTAL_STIMULI;
+    i++
+  ){
+    let base;
+
+    if(i < 2){
+      base =
+        randomChoice(BASE_LETTERS);
+
+    }else if(targets.has(i)){
+      base =
+        seq[i - 2].toUpperCase();
+
+    }else{
+      const forbidden =
+        seq[i - 2].toUpperCase();
+
+      base = randomChoice(
+        BASE_LETTERS.filter(
+          x => x !== forbidden
+        )
+      );
+    }
+
+    seq.push(
+      Math.random() < .5
+        ? base.toLowerCase()
+        : base
+    );
+  }
+
   verifySequence(seq);
+
   return seq;
 }
 
 function generateTargetPositions(){
-  // 評価試行1～24（配列index 2～25）と、評価試行25～48（index 26～49）から各6回選ぶ。
-  const firstHalfCandidates=Array.from({length:24},(_,i)=>i+2);
-  const secondHalfCandidates=Array.from({length:24},(_,i)=>i+26);
+  /*
+    評価試行1～24：
+    配列インデックス2～25
 
-  for(let attempt=0;attempt<100000;attempt++){
-    shuffleInPlace(firstHalfCandidates);
-    shuffleInPlace(secondHalfCandidates);
+    評価試行25～48：
+    配列インデックス26～49
+  */
 
-    const targets=[
-      ...firstHalfCandidates.slice(0,TARGETS_PER_HALF),
-      ...secondHalfCandidates.slice(0,TARGETS_PER_HALF)
-    ].sort((a,b)=>a-b);
+  const firstHalfCandidates =
+    Array.from(
+      {length:24},
+      (_, i) => i + 2
+    );
 
-    if(validateTargets(targets))return new Set(targets);
+  const secondHalfCandidates =
+    Array.from(
+      {length:24},
+      (_, i) => i + 26
+    );
+
+  for(
+    let attempt = 0;
+    attempt < 100000;
+    attempt++
+  ){
+    shuffleInPlace(
+      firstHalfCandidates
+    );
+
+    shuffleInPlace(
+      secondHalfCandidates
+    );
+
+    const targets = [
+      ...firstHalfCandidates.slice(
+        0,
+        TARGETS_PER_HALF
+      ),
+      ...secondHalfCandidates.slice(
+        0,
+        TARGETS_PER_HALF
+      )
+    ].sort(
+      (a, b) => a - b
+    );
+
+    if(validateTargets(targets)){
+      return new Set(targets);
+    }
   }
-  throw new Error("ターゲット配置の生成上限に達しました。");
+
+  throw new Error(
+    "ターゲット配置の生成上限に達しました。"
+  );
 }
 
 function validateTargets(targets){
-  if(targets.length!==TOTAL_TARGETS||new Set(targets).size!==TOTAL_TARGETS)return false;
-
-  // 前半24試行・後半24試行のターゲット数を各6回に固定する。
-  const firstHalfCount=targets.filter(position=>position>=2&&position<=25).length;
-  const secondHalfCount=targets.filter(position=>position>=26&&position<=49).length;
-  if(firstHalfCount!==TARGETS_PER_HALF||secondHalfCount!==TARGETS_PER_HALF)return false;
-
-  // 開始・終了・ターゲット間で非ターゲット12連続以上を禁止。
-  if(targets[0]-2>=12||49-targets[targets.length-1]>=12)return false;
-  for(let i=1;i<targets.length;i++)if(targets[i]-targets[i-1]-1>=12)return false;
-  // ターゲット3連続を禁止。
-  for(let i=2;i<targets.length;i++){
-    if(targets[i]===targets[i-1]+1&&targets[i-1]===targets[i-2]+1)return false;
+  if(
+    targets.length !==
+      TOTAL_TARGETS ||
+    new Set(targets).size !==
+      TOTAL_TARGETS
+  ){
+    return false;
   }
+
+  /*
+    前半24試行、後半24試行の
+    ターゲット数を各6回に固定する。
+  */
+  const firstHalfCount =
+    targets.filter(
+      position =>
+        position >= 2 &&
+        position <= 25
+    ).length;
+
+  const secondHalfCount =
+    targets.filter(
+      position =>
+        position >= 26 &&
+        position <= 49
+    ).length;
+
+  if(
+    firstHalfCount !==
+      TARGETS_PER_HALF ||
+    secondHalfCount !==
+      TARGETS_PER_HALF
+  ){
+    return false;
+  }
+
+  /*
+    開始部、終了部、ターゲット間で、
+    非ターゲット12連続以上を禁止する。
+  */
+  if(
+    targets[0] - 2 >= 12 ||
+    49 -
+      targets[
+        targets.length - 1
+      ] >= 12
+  ){
+    return false;
+  }
+
+  for(
+    let i = 1;
+    i < targets.length;
+    i++
+  ){
+    if(
+      targets[i] -
+      targets[i - 1] -
+      1 >= 12
+    ){
+      return false;
+    }
+  }
+
+  /*
+    ターゲット3連続を禁止する。
+  */
+  for(
+    let i = 2;
+    i < targets.length;
+    i++
+  ){
+    if(
+      targets[i] ===
+        targets[i - 1] + 1 &&
+      targets[i - 1] ===
+        targets[i - 2] + 1
+    ){
+      return false;
+    }
+  }
+
   return true;
 }
 
 function verifySequence(seq){
-  if(seq.length!==TOTAL_STIMULI)throw new Error("刺激数エラー");
-  const targets=[];
-  for(let i=2;i<seq.length;i++){
-    if(seq[i].toLowerCase()===seq[i-2].toLowerCase())targets.push(i);
+  if(
+    seq.length !== TOTAL_STIMULI
+  ){
+    throw new Error(
+      "刺激数エラー"
+    );
   }
-  if(!validateTargets(targets))throw new Error("刺激列条件エラー");
+
+  const targets = [];
+
+  for(
+    let i = 2;
+    i < seq.length;
+    i++
+  ){
+    if(
+      seq[i].toLowerCase() ===
+      seq[i - 2].toLowerCase()
+    ){
+      targets.push(i);
+    }
+  }
+
+  if(!validateTargets(targets)){
+    throw new Error(
+      "刺激列条件エラー"
+    );
+  }
 }
-function randomChoice(a){return a[Math.floor(Math.random()*a.length)]}
-function shuffleInPlace(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 
-/* ===== 判定 ===== */
+function randomChoice(a){
+  return a[
+    Math.floor(
+      Math.random() * a.length
+    )
+  ];
+}
+
+function shuffleInPlace(a){
+  for(
+    let i = a.length - 1;
+    i > 0;
+    i--
+  ){
+    const j = Math.floor(
+      Math.random() * (i + 1)
+    );
+
+    [a[i], a[j]] =
+      [a[j], a[i]];
+  }
+
+  return a;
+}
+
+/* ==================================================
+   判定
+================================================== */
+
 function evaluateTrial(){
-  if(stimulusIndex<3)return;
-  const trialNo=stimulusIndex-2;
-  const current=shownSequence[stimulusIndex-1];
-  const back2=shownSequence[stimulusIndex-3];
-  const isTarget=current.toLowerCase()===back2.toLowerCase();
-
-  if(currentResponses.length===0){
-    logs.push([trialNo,"",isTarget?RESULT_CODES.NO_RESPONSE_MISS:RESULT_CODES.CR]);
+  /*
+    最初の2刺激は評価しない。
+  */
+  if(stimulusIndex < 3){
     return;
   }
 
-  const rt=currentResponses[0];
-  const code=isTarget
-    ?(rt<=100?RESULT_CODES.EARLY_MISS:RESULT_CODES.HIT)
-    :(rt<=100?RESULT_CODES.EARLY_FA:RESULT_CODES.VALID_FA);
-  logs.push([trialNo,rt,code]);
+  const trialNo =
+    stimulusIndex - 2;
 
-  for(let i=1;i<currentResponses.length;i++){
-    logs.push(["",-currentResponses[i],RESULT_CODES.DUPLICATE]);
+  const current =
+    shownSequence[
+      stimulusIndex - 1
+    ];
+
+  const back2 =
+    shownSequence[
+      stimulusIndex - 3
+    ];
+
+  const isTarget =
+    current.toLowerCase() ===
+    back2.toLowerCase();
+
+  if(
+    currentResponses.length === 0
+  ){
+    logs.push([
+      trialNo,
+      "",
+      isTarget
+        ? RESULT_CODES.NO_RESPONSE_MISS
+        : RESULT_CODES.CR
+    ]);
+
+    return;
+  }
+
+  const rt =
+    currentResponses[0];
+
+  const code = isTarget
+    ? (
+        rt <= 100
+          ? RESULT_CODES.EARLY_MISS
+          : RESULT_CODES.HIT
+      )
+    : (
+        rt <= 100
+          ? RESULT_CODES.EARLY_FA
+          : RESULT_CODES.VALID_FA
+      );
+
+  logs.push([
+    trialNo,
+    rt,
+    code
+  ]);
+
+  /*
+    同一試行の2回目以降の反応。
+  */
+  for(
+    let i = 1;
+    i < currentResponses.length;
+    i++
+  ){
+    logs.push([
+      "",
+      -currentResponses[i],
+      RESULT_CODES.DUPLICATE
+    ]);
   }
 }
 
-/* ===== d'計算 ===== */
+/* ==================================================
+   d′計算
+================================================== */
+
 function countResults(){
-  const counts={1:0,2:0,3:0,4:0,5:0,6:0,7:0};
-  logs.forEach(row=>{const code=row[2];if(Object.prototype.hasOwnProperty.call(counts,code))counts[code]++});
+  const counts = {
+    1:0,
+    2:0,
+    3:0,
+    4:0,
+    5:0,
+    6:0,
+    7:0
+  };
+
+  logs.forEach(row => {
+    const code = row[2];
+
+    if(
+      Object.prototype
+        .hasOwnProperty
+        .call(counts, code)
+    ){
+      counts[code]++;
+    }
+  });
+
   return counts;
 }
 
-/* Acklam法による標準正規分布の逆累積分布関数 */
+/*
+  Acklam法による
+  標準正規分布の逆累積分布関数
+*/
 function inverseNormalCDF(p){
-  if(!(p>0&&p<1))throw new Error("確率は0より大きく1より小さい必要があります。");
-  const a=[-3.969683028665376e+01,2.209460984245205e+02,-2.759285104469687e+02,1.383577518672690e+02,-3.066479806614716e+01,2.506628277459239e+00];
-  const b=[-5.447609879822406e+01,1.615858368580409e+02,-1.556989798598866e+02,6.680131188771972e+01,-1.328068155288572e+01];
-  const c=[-7.784894002430293e-03,-3.223964580411365e-01,-2.400758277161838e+00,-2.549732539343734e+00,4.374664141464968e+00,2.938163982698783e+00];
-  const d=[7.784695709041462e-03,3.224671290700398e-01,2.445134137142996e+00,3.754408661907416e+00];
-  const plow=.02425,phigh=1-plow;
-  let q,r;
-  if(p<plow){
-    q=Math.sqrt(-2*Math.log(p));
-    return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);
+  if(!(p > 0 && p < 1)){
+    throw new Error(
+      "確率は0より大きく1より小さい必要があります。"
+    );
   }
-  if(p>phigh){
-    q=Math.sqrt(-2*Math.log(1-p));
-    return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5])/((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1);
+
+  const a = [
+    -3.969683028665376e+01,
+     2.209460984245205e+02,
+    -2.759285104469687e+02,
+     1.383577518672690e+02,
+    -3.066479806614716e+01,
+     2.506628277459239e+00
+  ];
+
+  const b = [
+    -5.447609879822406e+01,
+     1.615858368580409e+02,
+    -1.556989798598866e+02,
+     6.680131188771972e+01,
+    -1.328068155288572e+01
+  ];
+
+  const c = [
+    -7.784894002430293e-03,
+    -3.223964580411365e-01,
+    -2.400758277161838e+00,
+    -2.549732539343734e+00,
+     4.374664141464968e+00,
+     2.938163982698783e+00
+  ];
+
+  const d = [
+     7.784695709041462e-03,
+     3.224671290700398e-01,
+     2.445134137142996e+00,
+     3.754408661907416e+00
+  ];
+
+  const plow = .02425;
+  const phigh = 1 - plow;
+
+  let q;
+  let r;
+
+  if(p < plow){
+    q = Math.sqrt(
+      -2 * Math.log(p)
+    );
+
+    return (
+      (
+        (
+          (
+            (
+              (
+                c[0] * q +
+                c[1]
+              ) * q +
+              c[2]
+            ) * q +
+            c[3]
+          ) * q +
+          c[4]
+        ) * q +
+        c[5]
+      )
+      /
+      (
+        (
+          (
+            (
+              d[0] * q +
+              d[1]
+            ) * q +
+            d[2]
+          ) * q +
+          d[3]
+        ) * q +
+        1
+      )
+    );
   }
-  q=p-.5;r=q*q;
-  return (((((a[0]*r+a[1])*r+a[2])*r+a[3])*r+a[4])*r+a[5])*q/(((((b[0]*r+b[1])*r+b[2])*r+b[3])*r+b[4])*r+1);
+
+  if(p > phigh){
+    q = Math.sqrt(
+      -2 * Math.log(1 - p)
+    );
+
+    return -(
+      (
+        (
+          (
+            (
+              (
+                c[0] * q +
+                c[1]
+              ) * q +
+              c[2]
+            ) * q +
+            c[3]
+          ) * q +
+          c[4]
+        ) * q +
+        c[5]
+      )
+      /
+      (
+        (
+          (
+            (
+              d[0] * q +
+              d[1]
+            ) * q +
+            d[2]
+          ) * q +
+          d[3]
+        ) * q +
+        1
+      )
+    );
+  }
+
+  q = p - .5;
+  r = q * q;
+
+  return (
+    (
+      (
+        (
+          (
+            (
+              a[0] * r +
+              a[1]
+            ) * r +
+            a[2]
+          ) * r +
+          a[3]
+        ) * r +
+        a[4]
+      ) * r +
+      a[5]
+    ) * q
+    /
+    (
+      (
+        (
+          (
+            (
+              b[0] * r +
+              b[1]
+            ) * r +
+            b[2]
+          ) * r +
+          b[3]
+        ) * r +
+        b[4]
+      ) * r +
+      1
+    )
+  );
 }
 
 function calculateDPrime(){
-  const c=countResults();
-  const hit=c[RESULT_CODES.HIT];
-  const earlyMiss=c[RESULT_CODES.EARLY_MISS];
-  const noResponseMiss=c[RESULT_CODES.NO_RESPONSE_MISS];
-  const earlyFA=c[RESULT_CODES.EARLY_FA];
-  const validFA=c[RESULT_CODES.VALID_FA];
-  const cr=c[RESULT_CODES.CR];
+  const c = countResults();
 
-  const observedTargets=hit+earlyMiss+noResponseMiss;
-  const observedNonTargets=earlyFA+validFA+cr;
+  const hit =
+    c[RESULT_CODES.HIT];
 
-  // loglinear correction: (反応数+0.5)/(試行数+1)
-  const hitRate=(hit+0.5)/(observedTargets+1);
-  const faRate=(earlyFA+validFA+0.5)/(observedNonTargets+1);
-  const dPrime=inverseNormalCDF(hitRate)-inverseNormalCDF(faRate);
+  const earlyMiss =
+    c[RESULT_CODES.EARLY_MISS];
 
-  return {c,hit,earlyMiss,noResponseMiss,earlyFA,validFA,cr,observedTargets,observedNonTargets,hitRate,faRate,dPrime};
+  const noResponseMiss =
+    c[RESULT_CODES.NO_RESPONSE_MISS];
+
+  const earlyFA =
+    c[RESULT_CODES.EARLY_FA];
+
+  const validFA =
+    c[RESULT_CODES.VALID_FA];
+
+  const cr =
+    c[RESULT_CODES.CR];
+
+  const observedTargets =
+    hit +
+    earlyMiss +
+    noResponseMiss;
+
+  const observedNonTargets =
+    earlyFA +
+    validFA +
+    cr;
+
+  /*
+    Loglinear correction
+  */
+  const hitRate =
+    (hit + 0.5) /
+    (observedTargets + 1);
+
+  const faRate =
+    (
+      earlyFA +
+      validFA +
+      0.5
+    )
+    /
+    (
+      observedNonTargets +
+      1
+    );
+
+  const dPrime =
+    inverseNormalCDF(hitRate) -
+    inverseNormalCDF(faRate);
+
+  return {
+    c,
+    hit,
+    earlyMiss,
+    noResponseMiss,
+    earlyFA,
+    validFA,
+    cr,
+    observedTargets,
+    observedNonTargets,
+    hitRate,
+    faRate,
+    dPrime
+  };
 }
 
-/* ===== 終了・結果表示 ===== */
+/* ==================================================
+   終了・結果表示
+================================================== */
+
 function endGame(){
-  isRunning=false;
-  trialStartTime=null;
+  if(!isRunning){
+    return;
+  }
+
+  isRunning = false;
+  trialStartTime = null;
+
   clearTimeout(stimulusTimer);
   clearTimeout(fixationTimer);
-  letterDiv.textContent="終了";
-  letterDiv.classList.remove("fixation");
-  instructionDiv.textContent="";
+
+  /*
+    課題終了時に、
+    課題開始時と同じ音を鳴らす。
+  */
+  playEventTone();
+
+  letterDiv.textContent = "終了";
+  letterDiv.classList.remove(
+    "fixation"
+  );
+
+  instructionDiv.textContent = "";
+
   showResults();
 }
 
 function showResults(){
-  const r=calculateDPrime();
-  const hitRatePercent=r.hitRate*100;
-  const faRatePercent=r.faRate*100;
+  const r = calculateDPrime();
 
-  // 指定条件をそのまま適用する。
-  // FA率は「20%以下」を合格条件とする。
-  const passed=
-    hitRatePercent>=75 &&
-    faRatePercent<=20 &&
-    r.dPrime>=1.5;
+  const hitRatePercent =
+    r.hitRate * 100;
 
-  resultsDiv.innerHTML=`
+  const faRatePercent =
+    r.faRate * 100;
+
+  /*
+    合格条件：
+    ・補正Hit率 75%以上
+    ・補正FA率 20%以下
+    ・d′ 1.5以上
+  */
+  const passed =
+    hitRatePercent >= 75 &&
+    faRatePercent <= 20 &&
+    r.dPrime >= 1.5;
+
+  resultsDiv.innerHTML = `
     <h3>結果</h3>
 
     <div class="summaryMetrics">
-      <div class="metric">Hit率<strong>${hitRatePercent.toFixed(2)}%</strong></div>
-      <div class="metric">FA率<strong>${faRatePercent.toFixed(2)}%</strong></div>
-      <div class="metric">d′<strong>${r.dPrime.toFixed(4)}</strong></div>
+      <div class="metric">
+        Hit率
+        <strong>
+          ${hitRatePercent.toFixed(2)}%
+        </strong>
+      </div>
+
+      <div class="metric">
+        FA率
+        <strong>
+          ${faRatePercent.toFixed(2)}%
+        </strong>
+      </div>
+
+      <div class="metric">
+        d′
+        <strong>
+          ${r.dPrime.toFixed(4)}
+        </strong>
+      </div>
     </div>
 
-    <div class="judgment ${passed?'pass':'fail'}">${passed?'合格':'不合格'}</div>
+    <div class="judgment ${passed ? 'pass' : 'fail'}">
+      ${passed ? '合格' : '不合格'}
+    </div>
 
     <table>
-      <tr><th>指標</th><th>値</th></tr>
-      <tr><td>Hit（有効）</td><td>${r.hit}</td></tr>
-      <tr><td>Miss（早期）</td><td>${r.earlyMiss}</td></tr>
-      <tr><td>Miss（無反応）</td><td>${r.noResponseMiss}</td></tr>
-      <tr><td>ターゲット試行数</td><td>${r.observedTargets}</td></tr>
-      <tr><td>Hit率（補正後）</td><td>${r.hitRate.toFixed(4)}（${hitRatePercent.toFixed(2)}%）</td></tr>
-      <tr><td>FA（早期）</td><td>${r.earlyFA}</td></tr>
-      <tr><td>FA（有効）</td><td>${r.validFA}</td></tr>
-      <tr><td>CR（無反応）</td><td>${r.cr}</td></tr>
-      <tr><td>非ターゲット試行数</td><td>${r.observedNonTargets}</td></tr>
-      <tr><td>FA率（補正後）</td><td>${r.faRate.toFixed(4)}（${faRatePercent.toFixed(2)}%）</td></tr>
+      <tr>
+        <th>指標</th>
+        <th>値</th>
+      </tr>
+
+      <tr>
+        <td>Hit（有効）</td>
+        <td>${r.hit}</td>
+      </tr>
+
+      <tr>
+        <td>Miss（早期）</td>
+        <td>${r.earlyMiss}</td>
+      </tr>
+
+      <tr>
+        <td>Miss（無反応）</td>
+        <td>${r.noResponseMiss}</td>
+      </tr>
+
+      <tr>
+        <td>ターゲット試行数</td>
+        <td>${r.observedTargets}</td>
+      </tr>
+
+      <tr>
+        <td>Hit率（補正後）</td>
+        <td>
+          ${r.hitRate.toFixed(4)}
+          （${hitRatePercent.toFixed(2)}%）
+        </td>
+      </tr>
+
+      <tr>
+        <td>FA（早期）</td>
+        <td>${r.earlyFA}</td>
+      </tr>
+
+      <tr>
+        <td>FA（有効）</td>
+        <td>${r.validFA}</td>
+      </tr>
+
+      <tr>
+        <td>CR（無反応）</td>
+        <td>${r.cr}</td>
+      </tr>
+
+      <tr>
+        <td>非ターゲット試行数</td>
+        <td>${r.observedNonTargets}</td>
+      </tr>
+
+      <tr>
+        <td>FA率（補正後）</td>
+        <td>
+          ${r.faRate.toFixed(4)}
+          （${faRatePercent.toFixed(2)}%）
+        </td>
+      </tr>
     </table>
   `;
-  resultsDiv.style.display="block";
+
+  resultsDiv.style.display = "block";
 }
 </script>
+
 </body>
 </html>
